@@ -87,31 +87,60 @@ const init = async () => {
   server.route({
     method: "GET",
     path: "/books",
-    handler: () => ({
-      status: "success",
-      data: {
-        books: books.map((book) => ({
-          id: book.id,
-          name: book.name,
-          publisher: book.publisher,
-        })),
-      },
-    }),
+    handler: (request) => {
+      const { name, reading, finished } = request.query;
+
+      let filteredBooks = books;
+
+      // Filter berdasarkan nama (case-insensitive)
+      if (name) {
+        filteredBooks = filteredBooks.filter((book) =>
+          book.name.toLowerCase().includes(name.toLowerCase())
+        );
+      }
+
+      // Filter berdasarkan status reading (0 = false, 1 = true)
+      if (reading !== undefined) {
+        filteredBooks = filteredBooks.filter(
+          (book) => book.reading === (reading === "1")
+        );
+      }
+
+      // Filter berdasarkan status finished (0 = false, 1 = true)
+      if (finished !== undefined) {
+        filteredBooks = filteredBooks.filter(
+          (book) => book.finished === (finished === "1")
+        );
+      }
+
+      return {
+        status: "success",
+        data: {
+          books: filteredBooks.map((book) => ({
+            id: book.id,
+            name: book.name,
+            publisher: book.publisher,
+          })),
+        },
+      };
+    },
   });
 
   // Route untuk menampilkan detail buku (Kriteria 5)
   server.route({
     method: "GET",
     path: "/books/{bookId}",
-    handler: (request) => {
+    handler: (request, h) => {
       const { bookId } = request.params;
       const book = books.find((b) => b.id === bookId);
 
       if (!book) {
-        return {
-          status: "fail",
-          message: "Buku tidak ditemukan",
-        };
+        return h
+          .response({
+            status: "fail",
+            message: "Buku tidak ditemukan",
+          })
+          .code(404);
       }
 
       return {
